@@ -2,6 +2,7 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\ProductController;
 
@@ -16,13 +17,10 @@ use App\Http\Controllers\Api\ProductController;
 |
 */
 
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
-});
-
+// Health check
 Route::get('/health', function () {
     return response()->json([
-        'status' => true,
+        'success' => true,
         'message' => 'Tomodachi Pet Shop API connected',
         'data' => [
             'app' => config('app.name'),
@@ -32,5 +30,21 @@ Route::get('/health', function () {
     ]);
 });
 
-Route::apiResource('categories', CategoryController::class);
-Route::apiResource('products', ProductController::class);
+// Authentication Routes (Public)
+Route::prefix('auth')->group(function () {
+    Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/register', [AuthController::class, 'register']);
+});
+
+// Protected Routes (Require Authentication)
+Route::middleware('auth:sanctum')->prefix('auth')->group(function () {
+    Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/me', [AuthController::class, 'me']);
+    Route::post('/refresh-token', [AuthController::class, 'refreshToken']);
+});
+
+// Protected Resource Routes
+Route::middleware('auth:sanctum')->group(function () {
+    Route::apiResource('categories', CategoryController::class);
+    Route::apiResource('products', ProductController::class);
+});

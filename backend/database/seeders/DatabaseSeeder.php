@@ -13,6 +13,12 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // Run role seeder
+        $this->call(RoleSeeder::class);
+
+        // Run user seeder
+        $this->call(UserSeeder::class);
+
         DB::table('roles')->upsert([
             ['name' => 'owner', 'created_at' => now(), 'updated_at' => now()],
             ['name' => 'kasir', 'created_at' => now(), 'updated_at' => now()],
