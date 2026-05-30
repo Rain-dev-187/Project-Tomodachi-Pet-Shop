@@ -8,10 +8,19 @@ class RegisterRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
+     * 
+     * Only Owner role can register new users (admin/kasir).
+     * REQ-AUTH-08: Only owner can register admin and kasir accounts
      */
     public function authorize(): bool
     {
-        return true;
+        // If user is not authenticated, allow (public registration)
+        // Otherwise, check if user is owner
+        if (!$this->user()) {
+            return true;
+        }
+
+        return $this->user()->role?->name === 'owner';
     }
 
     /**
@@ -21,10 +30,24 @@ class RegisterRequest extends FormRequest
      */
     public function rules(): array
     {
+        // Determine if this is a public registration or owner registration
+        $isPublicRegistration = !$this->user();
+        
+        if ($isPublicRegistration) {
+            // Public registration - create kasir account
+            return [
+                'name' => ['required', 'string', 'max:255'],
+                'email' => ['required', 'email', 'unique:users,email'],
+                'password' => ['required', 'string', 'min:8', 'confirmed'],
+            ];
+        }
+
+        // Owner registration - can specify role for admin/kasir
         return [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'role' => ['required', 'string', 'in:admin,kasir'],
         ];
     }
 
@@ -42,6 +65,8 @@ class RegisterRequest extends FormRequest
             'password.required' => 'Password is required',
             'password.min' => 'Password must be at least 8 characters',
             'password.confirmed' => 'Password confirmation does not match',
+            'role.required' => 'Role is required',
+            'role.in' => 'Role must be either admin or kasir',
         ];
     }
 }

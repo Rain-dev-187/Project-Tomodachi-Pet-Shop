@@ -58,19 +58,38 @@ class AuthController extends Controller
      * 
      * POST /api/register
      * 
+     * Public registration creates kasir account.
+     * REQ-AUTH-08: Only owner can register admin and kasir via authenticated endpoint.
+     *
      * @param RegisterRequest $request
      * @return \Illuminate\Http\JsonResponse
      */
     public function register(RegisterRequest $request)
     {
-        // Get default role (kasir)
-        $defaultRole = \App\Models\Role::where('name', 'kasir')->first();
+        // Determine which role to assign
+        $roleName = 'kasir'; // Default role for public registration
+        $isAuthenticatedRequest = $request->user() !== null;
+
+        // If request is authenticated (owner registering others)
+        if ($isAuthenticatedRequest) {
+            $roleName = $request->input('role', 'kasir');
+        }
+
+        // Get the role
+        $role = \App\Models\Role::where('name', $roleName)->first();
+
+        if (!$role) {
+            return $this->errorResponse(
+                'Role not found',
+                500
+            );
+        }
 
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'role_id' => $defaultRole?->id,
+            'role_id' => $role->id,
         ]);
 
         $token = $user->createToken('auth-token')->plainTextToken;
